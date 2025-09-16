@@ -1,0 +1,32 @@
+{
+    "name": "pinterest-downloader",
+    "version": "1.0.1",
+    "type": "module",
+    "description": "A cmd helper that can download pins from the Pinterest website",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ocai0/pinterest-downloader.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/ocai0/pinterest-downloader/issues"
+    },
+    "homepage": "https://github.com/ocai0/pinterest-downloader#readme",
+    "dependencies": {
+        "chalk": "^5.4.1",
+        "cli-progress": "^3.12.0",
+        "commander": "^14.0.0",
+        "dotenv": "^17.2.1",
+        "luxon": "^3.7.1",
+        "puppeteer-core": "^24.15.0"
+    },
+    "devDependencies": {
+        "@types/luxon": "^3.7.1"
+    }
+}

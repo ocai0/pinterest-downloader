@@ -1,0 +1,11 @@
+.vscode/
+node_modules/
+dist/
+output/
+logs/
+package-lock.json
+*.ignore-git.*
+.env
+*.map
+*.log
+session-cookies.json
