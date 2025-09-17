@@ -426,7 +426,11 @@ async function downloadM3U8Video(pin: PinData, filename: string | undefined, pat
         return (checkDownload(`${path}/${filename}.mp4`));
     }
     catch(error) {
-        throw new Error(error as any)
+        console.error(error);
+        return {
+            fileWasDownloaded: false,
+            savedPinPath: ""
+        } as ICheckDownload
     }
 }
 
@@ -446,7 +450,11 @@ async function downloadMP4Video(pin: PinData, filename: string | undefined, path
         return (checkDownload(`${path}/${filename}.${extension}`));
     }
     catch(error) {
-        throw new Error(error as any)
+        console.error(error);
+        return {
+            fileWasDownloaded: false,
+            savedPinPath: ""
+        } as ICheckDownload
     }
 }
 
@@ -466,7 +474,11 @@ async function downloadImage(pin: PinData, filename: string | undefined, path: s
         return (checkDownload(`${path}/${filename}.${extension}`));
     }
     catch(error) {
-        throw new Error(error as any)
+        console.error(error);
+        return {
+            fileWasDownloaded: false,
+            savedPinPath: ""
+        } as ICheckDownload
     }
 }
 
