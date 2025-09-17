@@ -63,11 +63,14 @@ export async function getFolderItems(folderUrl: string, options: {limit: number,
     
     for(let [key, pinData] of pinsFounded.entries()) {
         if(pinData.type == "DELETED_PIN") {
+            console.log(`Pin was deleted by it's creator, trying to recover the data`);
             try {
                 const {src} = await getDeletedPinData(pinData.url);
-                console.log(`Founded src ${src} for pin ${pinData.id}`);
-                pinData.type = "PIN";
-                pinData.media = { src }
+                if(src) {
+                    console.log(`Founded src ${src} for pin ${pinData.id}`);
+                    pinData.type = "PIN";
+                    pinData.media = { src }
+                }
             }
             catch(notWorked) {
                 console.error(notWorked);
@@ -75,7 +78,7 @@ export async function getFolderItems(folderUrl: string, options: {limit: number,
         }
         if(pinData.type == "PIN") {
             if(!pinData.media.src) {
-                const pinResource = await getPinResource(pinData.id);
+                const pinResource = await getPinResource(pinData);
                 if(!pinResource) continue;
                 pinData.media.src = pinResource.streamUrl;
                 pinData.media.storyImages = pinResource.storyImages;
@@ -176,18 +179,26 @@ async function extractPinDataFromCurrentScreen(page: Page, options: {howMany: nu
             .map((gridItem) => new Promise<PinData | null>((resolve) => {
                 // @ts-ignore - because i'm only defining a variable that's gaing to be written after
                 let pinData: PinData = {};
+                const pinAnchorTag = gridItem.querySelector("a");
+                if(!pinAnchorTag) return resolve(null);
+                const isACarouselPin = gridItem.querySelector(`[data-test-id="carousel-pin"]`);
                 const isADeletedPin = gridItem.querySelector(`[data-test-id="unavailable-pin"]`);
-                if(isADeletedPin) {
-                    pinData.type = 'DELETED_PIN';
-                    pinData.url = gridItem.querySelector("a")!.href;
+                const isAFolder = pinAnchorTag.href.indexOf("/pin/") == -1;
+                if(isACarouselPin) {
+                    pinData.type = 'CAROUSEL_PIN';
+                    pinData.url = pinAnchorTag.href;
+                    const carouselImages = [...gridItem.querySelectorAll(`[data-test-id="carousel-pin"] img`)].map((img) => (img as HTMLImageElement).src.replace("236", "736"));
+                    pinData.media = {
+                        storyImages: carouselImages
+                    };
                     pinData.id = getPinId(pinData.url);
                 }
-                const pinAnchorTag = gridItem.querySelector("a");
-                if(!pinAnchorTag) {
-                    resolve(null);
-                    return;
+                else if(isADeletedPin) {
+                    pinData.type = 'DELETED_PIN';
+                    pinData.url = pinAnchorTag.href;
+                    pinData.id = getPinId(pinData.url);
                 }
-                else if(pinAnchorTag.href.indexOf("/pin/") == -1) {
+                else if(isAFolder) {
                     pinData.type = 'FOLDER';
                     pinData.url = pinAnchorTag.href;
                 }
@@ -207,7 +218,8 @@ async function extractPinDataFromCurrentScreen(page: Page, options: {howMany: nu
     });
     for(const pin of pinsArray) {
         switch(pin.type) {
-            case 'DELETED_PIN': {
+            case 'DELETED_PIN':
+            case 'CAROUSEL_PIN': {
                 pinsMap.set(pin.id, pin);
             } break;
 
@@ -232,7 +244,7 @@ async function extractPinDataFromCurrentScreen(page: Page, options: {howMany: nu
 
 async function scrollPageDown(page: Page): Promise<void> {
     await page.evaluate(() => scrollBy(0, window.innerHeight));
-    await delay(500);
+    await delay(1500);
 }
 
 async function reachedTheBottom(page: Page): Promise<boolean> {
@@ -250,10 +262,10 @@ async function reachedTheBottom(page: Page): Promise<boolean> {
     return false;
 }
 
-async function getPinResource(pinId: string) {
+async function getPinResource(pin: PinData) {
     const data = {
         options: {
-            id: pinId,
+            id: pin.id,
             field_set_key: "auth_web_main_pin",
             noCache: true,
             fetch_visual_search_objects: false,
@@ -263,7 +275,7 @@ async function getPinResource(pinId: string) {
     }
     const cookieHashMap = (await getCookies()).hashMap;
     const timestamp = new Date().getTime();
-    const url = `https://br.pinterest.com/resource/PinResource/get/?source_url=${encodeURIComponent(`/pin/${pinId}/`)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${timestamp}`
+    const url = `https://br.pinterest.com/resource/PinResource/get/?source_url=${encodeURIComponent(`/pin/${pin.id}/`)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${timestamp}`
     const headers = {
         "x-pinterest-pws-handler": "www/pin/[id].js",
         "cookie": `csrftoken=${cookieHashMap.get(`csrftoken`)!.value};_b=${cookieHashMap.get(`_b`)!.value};_auth=${cookieHashMap.get(`_auth`)!.value};_pinterest_sess=${cookieHashMap.get(`_pinterest_sess`)!.value};__Secure-s_a=${cookieHashMap.get(`__Secure-s_a`)!.value};sessionFunnelEventLogged=${cookieHashMap.get(`sessionFunnelEventLogged`)!.value};`,
@@ -279,9 +291,9 @@ async function getPinResource(pinId: string) {
     }
 
     const _retrievedData = await request.text();
-    if(!existsSync(`logs`)) await mkdir(`logs`);
-    await writeFile(`logs/${pinId}.log`, _retrievedData);
-    console.log(` - Log: ${pinId}.log`)
+    // if(!existsSync(`logs`)) await mkdir(`logs`);
+    // await writeFile(`logs/${pin.id}.log`, _retrievedData);
+    // console.log(` - Log: ${pin.id}.log`)
 
     try {
         let response = {
@@ -293,13 +305,13 @@ async function getPinResource(pinId: string) {
             response.storyImages = resource_response.bodyData.data.story_pin_data.pages.map((page: any) => page.blocks[0].image.images.originals.url);
         }
         else {
-
             response.streamUrl = /url"\s?\:([^},]+(m3u8|mp4|gif))/g.exec(_retrievedData)![1]?.replace("\"", "");
         }
         return response;
     }
     catch(error) {
-        console.error(error)
+        // console.log(`Error on getPinResource`, {pin})
+        return undefined;
     }
 
 }
@@ -325,13 +337,14 @@ export async function saveFolderOnDisk(folder: FolderData, path: string, options
         await mkdir(completePath, {recursive: true})
     while(folder.pins.length) {
         const pin: PinData | undefined = folder.pins.shift();
+
         if(!pin || pin.type == "FOLDER") continue;
         let downloadResult: ICheckDownload;
-        console.log(`Start download of pin ${pin.url}`)
+        console.log(`\n\nStart download of pin ${pin.url}`)
         if(pin.media.storyImages?.length && pin.media.storyImages.length > 0) {
             let index = 0
+            console.info(`Downloading ${pin.media.storyImages.length} images from carousel/story pin`);
             while(pin.media.storyImages.length) {
-                // console.info(`Downloading images from story-like pin`);
                 const storyItem = pin.media.storyImages.shift();
                 if(!storyItem) continue;
                 const fakePin: PinData = {
@@ -346,6 +359,7 @@ export async function saveFolderOnDisk(folder: FolderData, path: string, options
 
                 };
                 downloadResult = await downloadImage(fakePin, undefined, completePath);
+                if(downloadResult.fileWasDownloaded == false) throw new Error(`While downloading carousel/story pin something wrong ocourred:\ntype: ${pin.type}\nurl: ${pin.url}\nmedia: ${pin.media.storyImages}`)
                 index++;
             }
         }
@@ -396,7 +410,17 @@ async function downloadM3U8Video(pin: PinData, filename: string | undefined, pat
         if(!name) filename = pin.id;
         else filename = name[1];
     }
+    let index = -1
+    let alreadyExistsAFile = false;
+    do {
+        let _filename = filename;
+        if(index != -1) _filename += ` (${index})`;
+        alreadyExistsAFile = await checkIfFileExists(`${path}/${_filename}.mp4`);
+        if(alreadyExistsAFile) index++
+    } while(alreadyExistsAFile);
+
     try {
+        if(index != -1) filename += ` (${index})`;
         const command = `ffmpeg -y -i "${pin.media.src}" -bsf:a aac_adtstoasc -vcodec copy -c copy -crf 50 ${path}/${filename}.mp4`
         await cmd(command);
         return (checkDownload(`${path}/${filename}.mp4`));
@@ -488,6 +512,10 @@ function checkDownload(path: string): ICheckDownload {
     return response;
 }
 
+async function checkIfFileExists(path: string) {
+    return existsSync(path)
+}
+
 
 function toBuffer(arrayBuffer: ArrayBuffer) {
     const buffer = Buffer.alloc(arrayBuffer.byteLength);
@@ -521,7 +549,7 @@ function sanitizeFolderName(folderName: string) {
 
 type PinData = {
     id: string;
-    type: 'FOLDER' | 'PIN' | 'DELETED_PIN';
+    type: 'FOLDER' | 'PIN' | 'DELETED_PIN' | 'CAROUSEL_PIN';
     url: string;
     text?: string;
     media: {
