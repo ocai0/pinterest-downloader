@@ -553,6 +553,7 @@ function sanitizeFolderName(folderName: string) {
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^\d\s\w]/g, "")
         .replace(/\s/g, "-")
+        .replace(/-{2,}/g, "-")
         .toLowerCase();
 }
 
