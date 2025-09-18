@@ -3,6 +3,7 @@ import { program } from "commander"
 import { getVersion } from "./modules/version.js"
 import * as auth from "./modules/auth.js"
 import { getFolderItems, saveFolderOnDisk, saveFolderLog } from "./modules/download.js";
+import { deepVerify } from "./modules/file.js";
 
 program
     .name(`Pinterest Downloader`)
@@ -34,6 +35,12 @@ program
     .command("login")
     .description("Generate session token")
     .action((_, options) => auth.login());
+
+program
+    .command("verify")
+    .description("Checks if has any missing pins using the log file as base")
+    .argument("<folder>", "Folder name in ./output folder")
+    .action((folder, options) => deepVerify(folder));
 
 
 program.parse();

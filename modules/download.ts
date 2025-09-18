@@ -559,7 +559,7 @@ function sanitizeFolderName(folderName: string) {
 
 // // -----------------------
 
-type PinData = {
+export type PinData = {
     id: string;
     type: 'FOLDER' | 'PIN' | 'DELETED_PIN' | 'CAROUSEL_PIN';
     url: string;
@@ -572,7 +572,7 @@ type PinData = {
     }
 };
 
-type FolderData = {
+export type FolderData = {
     name: string;
     subfolders: FolderData[];
     pins: PinData[];

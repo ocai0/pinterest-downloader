@@ -7,6 +7,7 @@ Script para fazer dump de pastas do pinterest
     * Usando a flag `-l[LIMIT_COUNT]`, você limita a quantidade de media baixados
     * Usando a flag `-D`, você remove os pins da pasta na sua conta (precisa estar logado para isso)
     * Usando a flag `-r`, você baixa também as subpastas
+- node . verify: Checa se baixou todos os pins listados nos arquivos de log
 
 
 #### Como rodar este projeto
