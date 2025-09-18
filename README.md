@@ -4,6 +4,7 @@ Script para fazer dump de pastas do pinterest
 #### Comandos
 - node . login: gera os cookies usados para entrar em uma sessão já logado
 - node . download [URL]: Faz download de uma pasta e a coloca dentro da pasta output do projeto
+    * URL pode ser tanto a url completa (https://www.pinterest.com/USER/FOLDER) quanto apenas a parte final dela (USER/FOLDER)
     * Usando a flag `-l[LIMIT_COUNT]`, você limita a quantidade de media baixados
     * Usando a flag `-D`, você remove os pins da pasta na sua conta (precisa estar logado para isso)
     * Usando a flag `-r`, você baixa também as subpastas

@@ -4,6 +4,7 @@ import { getVersion } from "./modules/version.js"
 import * as auth from "./modules/auth.js"
 import { getFolderItems, saveFolderOnDisk, saveFolderLog } from "./modules/download.js";
 import { deepVerify } from "./modules/file.js";
+import { normalizeUrl } from "./modules/url.js";
 
 program
     .name(`Pinterest Downloader`)
@@ -26,6 +27,7 @@ program
     .option("-r, --recursive", "Download sub folders if any", false)
     .argument("<url>", "url of the folder / user")
     .action(async (url, options) => {
+        url = normalizeUrl(url);
         const folderData = await getFolderItems(url, options)
         await saveFolderLog(folderData);
         await saveFolderOnDisk(folderData, "./output", {deletePinsAfterDownload: options.deleteAfter})
