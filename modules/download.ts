@@ -551,7 +551,7 @@ function cmd(command: string) {
 function sanitizeFolderName(folderName: string) {
     return folderName
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^\d\s\w]/g, "")
+        .replace(/[^\d\s\w\-]/g, "")
         .replace(/\s/g, "-")
         .replace(/-{2,}/g, "-")
         .toLowerCase();
